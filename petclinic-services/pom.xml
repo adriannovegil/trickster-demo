@@ -10,7 +10,7 @@
     </parent>
 
     <groupId>org.springframework.samples</groupId>
-    <artifactId>spring-petclinic-microservices-inspectit</artifactId>
+    <artifactId>spring-petclinic-microservices-trickster</artifactId>
     <version>2.1.4</version>
     <name>${project.artifactId}</name>
     <packaging>pom</packaging>
@@ -36,12 +36,12 @@
 
         <maven-surefire-plugin.version>2.22.0</maven-surefire-plugin.version>
 
-        <docker.image.prefix>inspectit</docker.image.prefix>
+        <docker.image.prefix>trickster</docker.image.prefix>
         <docker.image.exposed.port>9090</docker.image.exposed.port>
         <docker.image.dockerfile.dir>${basedir}</docker.image.dockerfile.dir>
         <docker.image.dockerize.version>v0.6.1</docker.image.dockerize.version>
         <docker.plugin.version>1.2.0</docker.plugin.version>
-        
+
         <opencensus.version>0.16.1</opencensus.version>
     </properties>
 
@@ -54,13 +54,13 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            
+
             <dependency>
-                <groupId>org.springframework.samples.petclinic.opencensus</groupId>                
+                <groupId>org.springframework.samples.petclinic.opencensus</groupId>
                 <artifactId>spring-petclinic-opencensus-server</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-test</artifactId>

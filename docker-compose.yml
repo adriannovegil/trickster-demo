@@ -1,25 +1,295 @@
 version: '3.8'
 services:
 
-  grafana:
-    image: grafana/grafana:6.7.3
-    user: nobody
-    ports:
-      - 3000:3000
+  # InspectIT
+  # ============================================================================
+  # Agent
+  agent:
+    build: ./docker/agent
+    image: inspectit/inspectit-agent
+    container_name: inspectit-agent
     volumes:
-      - ./docker-compose-data/grafana-config:/etc/grafana
-      - ./docker-compose-data/dashboards:/var/lib/grafana/dashboards
+      - agent-vol:/agent
+
+  # Config server
+  ocelot-config-server:
+    image: inspectit/inspectit-ocelot-configurationserver:latest
+    container_name: ocelot-config-server
+    environment:
+      - INSPECTIT_CONFIG_SERVER_WORKING_DIRECTORY=/configuration-server
+      - INSPECTIT_CONFIG_SERVER_DEFAULT_USER_PASSWORD=demo
+    volumes:
+      - ./docker/configuration-server:/configuration-server
     networks:
       - trk-ex-back-tier
       - trk-ex-front-tier
-    restart: always
+    ports:
+      - 8090:8090
+
+  # Infrastructure
+  # ============================================================================
+  # Config server
+  config-server:
+    image: trickster/spring-petclinic-config-server
+    container_name: trickster-config-server
+    environment:
+      - INSPECTIT_SERVICE_NAME=config-server
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+      - agent
+      - ocelot-config-server
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+      - 8888:8888
+
+  # Discovery service
+  discovery-server:
+    image: trickster/spring-petclinic-discovery-server
+    container_name: trickster-discovery-server
+    environment:
+      - INSPECTIT_SERVICE_NAME=discovery-server
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - ocelot-config-server
+      - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://config-server:8888 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+      - 8761:8761
+
+  # Services
+  # ============================================================================
+  # Customers service
+  customers-service:
+    image: trickster/spring-petclinic-customers-service
+    container_name: trickster-customers-service
+    environment:
+      - INSPECTIT_SERVICE_NAME=customers-service
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - ocelot-config-server
+      - discovery-server
+      - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://discovery-server:8761 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+      - 8081:8081
+
+  # Visits service
+  visits-service:
+    image: trickster/spring-petclinic-visits-service
+    container_name: trickster-visits-service
+    environment:
+      - INSPECTIT_SERVICE_NAME=visits-service
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - ocelot-config-server
+      - discovery-server
+      - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://discovery-server:8761 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+      - 8082:8082
+
+  #Vets service
+  vets-service:
+    image: trickster/spring-petclinic-vets-service
+    container_name: trickster-vets-service
+    environment:
+      - INSPECTIT_SERVICE_NAME=vets-service
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - ocelot-config-server
+      - discovery-server
+      - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://discovery-server:8761 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+      - 8083:8083
+
+  # API gateway
+  api-gateway:
+    image: trickster/spring-petclinic-api-gateway
+    container_name: trickster-api-gateway
+    environment:
+      - INSPECTIT_SERVICE_NAME=api-gateway
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+      - config-server
+      - ocelot-config-server
+      - discovery-server
+      - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://discovery-server:8761 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+      - 8080:8080
+
+  # Admin Server
+  # ============================================================================
+  #admin-server:
+  #  image: trickster/spring-petclinic-admin-server
+  #  container_name: trickster-admin-server
+  #  environment:
+  #    - INSPECTIT_SERVICE_NAME=admin-server
+  #    - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+  #    - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+  #    - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+  #    - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+  #  depends_on:
+  #   - config-server
+  #   - ocelot-config-server
+  #   - discovery-server
+  #   - agent
+  #  entrypoint: ["sh", "-c","
+  #    ./dockerize -wait=tcp://config-server:8888 \
+  #                -wait=tcp://ocelot-config-server:8090 \
+  #                -wait=tcp://influxdb-server:8086 \
+  #                -wait=tcp://zipkin-server:9411  \
+  #                -timeout=300s -- &&
+  #    java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+  #    -javaagent:/agent/inspectit-ocelot-agent.jar
+  #    -jar /app.jar"]
+  #  volumes:
+  #    - agent-vol:/agent
+  #  networks:
+  #    - trk-ex-back-tier
+  #    - trk-ex-front-tier
+  #  ports:
+  #   - 9090:9090
+
+  # Circuit breaker
+  # ============================================================================
+  hystrix-dashboard:
+    image: trickster/spring-petclinic-hystrix-dashboard
+    container_name: trickster-hystrix-dashboard
+    environment:
+      - INSPECTIT_SERVICE_NAME=hystrix-dashboard
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+     - config-server
+     - ocelot-config-server
+     - discovery-server
+     - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://config-server:8888 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+     - 7979:7979
 
   # Metrics
   # ============================================================================
   prometheus:
     image: prom/prometheus:v2.17.2
     volumes:
-      - ./docker-compose-data/prometheus-config:/etc/prometheus
+      - ./docker/prometheus-config:/etc/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -31,15 +301,32 @@ services:
       - trk-ex-back-tier
     restart: always
 
+  # Grafana
+  grafana:
+    image: grafana/grafana:6.7.3
+    container_name: trickster-grafana
+    user: nobody
+    ports:
+      - 3000:3000
+    volumes:
+      - ./docker/grafana-config:/etc/grafana
+      - ./docker/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    restart: always
+
+
   # InfluxDB
-  influxdb:
+  influxdb-server:
     image: influxdb:1.7.1
+    container_name: trickster-influxdb-server
     environment:
       - INFLUXDB_HTTP_FLUX_ENABLED=true
       - INFLUXDB_HTTP_LOG_ENABLED=false
       - INFLUXDB_DATA_QUERY_LOG_ENABLED=false
     volumes:
-      - ./docker-compose-data/influxdb:/docker-entrypoint-initdb.d
+      - ./docker/influxdb:/docker-entrypoint-initdb.d
     networks:
       - trk-ex-back-tier
     ports:
@@ -49,6 +336,7 @@ services:
   # ============================================================================
   jaeger:
     image: jaegertracing/all-in-one:1.17
+    container_name: trickster-jaeger
     ports:
      - 5775:5775/udp
      - 6831:6831/udp
@@ -61,8 +349,9 @@ services:
       - trk-ex-back-tier
     restart: always
 
-  zipkin:
+  zipkin-server:
    image: openzipkin/zipkin:latest
+   container_name: trickster-zipkin-server
    ports:
     - 9411:9411
    networks:
@@ -85,14 +374,15 @@ services:
       # - 8483:8483 # tls frontend proxy port, unused in this demo
       - 8484:8484   # config reload port (insecure), exposed publicly for demonstration purposes only
     volumes:
-      - ./docker-compose-data/trickster-config:/etc/trickster
-      - ./docker-compose-data/trickster-data:/data/trickster
+      - ./docker/trickster-config:/etc/trickster
+      - ./docker/trickster-data:/data/trickster
     networks:
       - trk-ex-back-tier
     restart: always
 
   redis:
     image: redis:latest
+    container_name: trickster-redis
     user: nobody
     ports:
       - 6379:6379
@@ -104,11 +394,28 @@ services:
   # ============================================================================
   mockster:
     image: tricksterproxy/mockster:latest
+    container_name: trickster-mockster
     ports:
       - 8482:8482
     networks:
       - trk-ex-back-tier
     restart: always
+
+  load-server:
+    build: ./docker/load-server
+    image: trickster/load-server
+    container_name: trickster-load-server
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    depends_on:
+      - api-gateway
+      - customers-service
+      - visits-service
+      - vets-service
+
+volumes:
+  agent-vol:
 
 networks:
   trk-ex-front-tier:
