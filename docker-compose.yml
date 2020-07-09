@@ -363,6 +363,18 @@ services:
     ports:
       - 8086:8086
 
+  # Chronograf
+  chronograf:
+    image: chronograf:1.6.2
+    environment:
+      INFLUXDB_URL: http://influxdb-server:8086
+    depends_on:
+      - influxdb-server
+    networks:
+      - trk-ex-back-tier
+    ports:
+      - "8889:8888"
+
   # Trazing
   # ============================================================================
   # Zipkin server
