@@ -253,6 +253,7 @@ services:
 
   # Circuit breaker
   # ============================================================================
+  # Hystrix dashboard:
   hystrix-dashboard:
     image: trickster/spring-petclinic-hystrix-dashboard
     container_name: trickster-hystrix-dashboard
@@ -335,6 +336,7 @@ services:
 
   # Trazing
   # ============================================================================
+  # Jaeger
   jaeger:
     image: jaegertracing/all-in-one:1.17
     container_name: trickster-jaeger
@@ -350,6 +352,7 @@ services:
       - trk-ex-back-tier
     restart: always
 
+  # Zipkin server
   zipkin-server:
    image: openzipkin/zipkin:latest
    container_name: trickster-zipkin-server
@@ -361,6 +364,7 @@ services:
 
   # Proxy
   # ============================================================================
+  # Trickster
   trickster:
     image: tricksterproxy/trickster:1.1.0-beta
     depends_on:
@@ -381,6 +385,7 @@ services:
       - trk-ex-back-tier
     restart: always
 
+  # Redis
   redis:
     image: redis:latest
     container_name: trickster-redis
@@ -393,6 +398,7 @@ services:
 
   # Load
   # ============================================================================
+  # Mockster
   mockster:
     image: tricksterproxy/mockster:latest
     container_name: trickster-mockster
@@ -402,6 +408,7 @@ services:
       - trk-ex-back-tier
     restart: always
 
+  # Load server
   load-server:
     build: ./docker/load-server
     image: trickster/load-server
