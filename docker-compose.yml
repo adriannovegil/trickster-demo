@@ -13,7 +13,7 @@ services:
 
   # Config server
   ocelot-config-server:
-    image: inspectit/inspectit-ocelot-configurationserver:latest
+    image: inspectit/inspectit-ocelot-configurationserver:${INSPECTIT_OCELOT_VERSION}
     container_name: ocelot-config-server
     environment:
       - INSPECTIT_CONFIG_SERVER_WORKING_DIRECTORY=/configuration-server
@@ -220,36 +220,36 @@ services:
 
   # Admin Server
   # ============================================================================
-  #admin-server:
-  #  image: trickster/spring-petclinic-admin-server
-  #  container_name: trickster-admin-server
-  #  environment:
-  #    - INSPECTIT_SERVICE_NAME=admin-server
-  #    - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
-  #    - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
-  #    - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
-  #    - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
-  #  depends_on:
-  #   - config-server
-  #   - ocelot-config-server
-  #   - discovery-server
-  #   - agent
-  #  entrypoint: ["sh", "-c","
-  #    ./dockerize -wait=tcp://config-server:8888 \
-  #                -wait=tcp://ocelot-config-server:8090 \
-  #                -wait=tcp://influxdb-server:8086 \
-  #                -wait=tcp://zipkin-server:9411  \
-  #                -timeout=300s -- &&
-  #    java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
-  #    -javaagent:/agent/inspectit-ocelot-agent.jar
-  #    -jar /app.jar"]
-  #  volumes:
-  #    - agent-vol:/agent
-  #  networks:
-  #    - trk-ex-back-tier
-  #    - trk-ex-front-tier
-  #  ports:
-  #   - 9090:9090
+  admin-server:
+    image: trickster/spring-petclinic-admin-server
+    container_name: trickster-admin-server
+    environment:
+      - INSPECTIT_SERVICE_NAME=admin-server
+      - INSPECTIT_CONFIG_HTTP_URL=http://ocelot-config-server:8090/api/v1/agent/configuration
+      - INSPECTIT_EXPORTERS_METRICS_PROMETHEUS_ENABLED=false
+      - INSPECTIT_EXPORTERS_METRICS_INFLUX_URL=http://influxdb-server:8086
+      - INSPECTIT_EXPORTERS_TRACING_ZIPKIN_URL=http://zipkin-server:9411/api/v2/spans
+    depends_on:
+     - config-server
+     - ocelot-config-server
+     - discovery-server
+     - agent
+    entrypoint: ["sh", "-c","
+      ./dockerize -wait=tcp://config-server:8888 \
+                  -wait=tcp://ocelot-config-server:8090 \
+                  -wait=tcp://influxdb-server:8086 \
+                  -wait=tcp://zipkin-server:9411  \
+                  -timeout=300s -- &&
+      java -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap -Djava.security.egd=file:/dev/./urandom
+      -javaagent:/agent/inspectit-ocelot-agent.jar
+      -jar /app.jar"]
+    volumes:
+      - agent-vol:/agent
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    ports:
+     - 9090:9090
 
   # Circuit breaker
   # ============================================================================
@@ -287,37 +287,66 @@ services:
 
   # Metrics
   # ============================================================================
-  prometheus:
-    image: prom/prometheus:v2.17.2
-    volumes:
-      - ./docker/prometheus-config:/etc/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    ports:
-      - 9090:9090
-    networks:
-      - trk-ex-back-tier
-    restart: always
-
   # Grafana
-  grafana:
+  grafana-direct:
     image: grafana/grafana:6.7.3
-    container_name: trickster-grafana
-    user: nobody
-    ports:
-      - 3000:3000
+    container_name: trickster-grafana-direct
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
-      - ./docker/grafana-config:/etc/grafana
-      - ./docker/dashboards:/var/lib/grafana/dashboards
+      - ./docker/grafana/direct/grafana-config:/etc/grafana
+      - ./docker/grafana/direct/dashboards:/var/lib/grafana/dashboards
     networks:
       - trk-ex-back-tier
       - trk-ex-front-tier
     restart: always
+    ports:
+      - 3000:3000
+
+  grafana-mem:
+    image: grafana/grafana:6.7.3
+    container_name: trickster-grafana-mem
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/grafana/mem/grafana-config:/etc/grafana
+      - ./docker/grafana/mem/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    restart: always
+    ports:
+      - 3001:3000
+
+  grafana-fs:
+    image: grafana/grafana:6.7.3
+    container_name: trickster-grafana-fs
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/grafana/fs/grafana-config:/etc/grafana
+      - ./docker/grafana/fs/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    restart: always
+    ports:
+      - 3002:3000
+
+  grafana-redis:
+    image: grafana/grafana:6.7.3
+    container_name: trickster-grafana-redis
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/grafana/redis/grafana-config:/etc/grafana
+      - ./docker/grafana/redis/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - trk-ex-back-tier
+      - trk-ex-front-tier
+    restart: always
+    ports:
+      - 3003:3000
 
   # InfluxDB
   influxdb-server:
@@ -336,22 +365,6 @@ services:
 
   # Trazing
   # ============================================================================
-  # Jaeger
-  jaeger:
-    image: jaegertracing/all-in-one:1.17
-    container_name: trickster-jaeger
-    ports:
-     - 5775:5775/udp
-     - 6831:6831/udp
-     - 6832:6832/udp
-     - 5778:5778
-     - 16686:16686
-     - 14268:14268
-     - 14250:14250
-    networks:
-      - trk-ex-back-tier
-    restart: always
-
   # Zipkin server
   zipkin-server:
    image: openzipkin/zipkin:latest
@@ -368,10 +381,11 @@ services:
   trickster:
     image: tricksterproxy/trickster:1.1.0-beta
     depends_on:
-      - prometheus
-      - mockster
-      - grafana
-      - jaeger
+      - influxdb-server
+      - grafana-direct
+      - grafana-mem
+      - grafana-fs
+      - grafana-redis
       - redis
     ports:
       - 8480:8480   # primary frontend proxy port (insecure)
@@ -398,16 +412,6 @@ services:
 
   # Load
   # ============================================================================
-  # Mockster
-  mockster:
-    image: tricksterproxy/mockster:latest
-    container_name: trickster-mockster
-    ports:
-      - 8482:8482
-    networks:
-      - trk-ex-back-tier
-    restart: always
-
   # Load server
   load-server:
     build: ./docker/load-server

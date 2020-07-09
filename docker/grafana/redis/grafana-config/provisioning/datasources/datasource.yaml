@@ -1,0 +1,24 @@
+# config file version
+apiVersion: 1
+
+datasources:
+# InfluxDB - trickster - Redis cache
+- name: influx-trickster-redis
+  type: influxdb
+  access: proxy
+  orgId: 1
+  url: http://trickster:8480/influx3
+  password:
+  user:
+  database: inspectit
+  basicAuth:
+  basicAuthUser:
+  basicAuthPassword:
+  withCredentials:
+  isDefault:
+  secureJsonData:
+    tlsCACert: "..."
+    tlsClientCert: "..."
+    tlsClientKey: "..."
+  version: 1
+  editable: false
