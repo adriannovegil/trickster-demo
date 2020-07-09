@@ -308,6 +308,8 @@ services:
     user: nobody
     ports:
       - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - ./docker/grafana-config:/etc/grafana
       - ./docker/dashboards:/var/lib/grafana/dashboards
@@ -315,7 +317,6 @@ services:
       - trk-ex-back-tier
       - trk-ex-front-tier
     restart: always
-
 
   # InfluxDB
   influxdb-server:
