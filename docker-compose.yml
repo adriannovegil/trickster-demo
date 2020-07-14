@@ -249,7 +249,7 @@ services:
       - trk-ex-back-tier
       - trk-ex-front-tier
     ports:
-     - 9090:9090
+     - 9091:9090
 
   # Circuit breaker
   # ============================================================================
@@ -301,7 +301,7 @@ services:
       - trk-ex-front-tier
     restart: always
     ports:
-      - 3000:3000
+      - 3001:3000
 
   grafana-mem:
     image: grafana/grafana:6.7.3
@@ -316,7 +316,7 @@ services:
       - trk-ex-front-tier
     restart: always
     ports:
-      - 3001:3000
+      - 3002:3000
 
   grafana-fs:
     image: grafana/grafana:6.7.3
@@ -331,7 +331,7 @@ services:
       - trk-ex-front-tier
     restart: always
     ports:
-      - 3002:3000
+      - 3003:3000
 
   grafana-redis:
     image: grafana/grafana:6.7.3
@@ -346,7 +346,7 @@ services:
       - trk-ex-front-tier
     restart: always
     ports:
-      - 3003:3000
+      - 3004:3000
 
   # InfluxDB
   influxdb-server:
@@ -357,23 +357,11 @@ services:
       - INFLUXDB_HTTP_LOG_ENABLED=false
       - INFLUXDB_DATA_QUERY_LOG_ENABLED=false
     volumes:
-      - ./docker/influxdb:/docker-entrypoint-initdb.d
+      - ./docker/influxdb-server:/docker-entrypoint-initdb.d
     networks:
       - trk-ex-back-tier
     ports:
       - 8086:8086
-
-  # Chronograf
-  chronograf:
-    image: chronograf:1.6.2
-    environment:
-      INFLUXDB_URL: http://influxdb-server:8086
-    depends_on:
-      - influxdb-server
-    networks:
-      - trk-ex-back-tier
-    ports:
-      - "8889:8888"
 
   # Trazing
   # ============================================================================
@@ -443,4 +431,6 @@ volumes:
 
 networks:
   trk-ex-front-tier:
+    driver: bridge
   trk-ex-back-tier:
+    driver: bridge
