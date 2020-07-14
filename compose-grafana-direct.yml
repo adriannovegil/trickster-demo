@@ -17,7 +17,7 @@ services:
       - trickster-demo_trk-ex-front-tier
     restart: always
     ports:
-      - 3001:3000
+      - 3000:3000
 
 networks:
   trickster-demo_trk-ex-front-tier:

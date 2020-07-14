@@ -17,7 +17,32 @@ services:
       - trickster-demo_trk-ex-front-tier
     restart: always
     ports:
-      - 3002:3000
+      - 3000:3000
+
+  # Proxy
+  # ============================================================================
+  # Trickster
+  trickster:
+    image: tricksterproxy/trickster:1.1.0-beta
+    container_name: trickster-server-mem
+    depends_on:
+      - influxdb-server
+      - grafana-direct
+      - grafana-mem
+      - grafana-fs
+      - grafana-redis
+      - redis
+    ports:
+      - 8480:8480   # primary frontend proxy port (insecure)
+      - 8481:8481   # metrics port (insecure)
+      # - 8483:8483 # tls frontend proxy port, unused in this demo
+      - 8484:8484   # config reload port (insecure), exposed publicly for demonstration purposes only
+    volumes:
+      - ./docker/trickster-config/mem:/etc/trickster
+      - ./docker/trickster-data/mem:/data/trickster
+    networks:
+      - trickster-demo_trk-ex-back-tier
+    restart: always
 
 networks:
   trickster-demo_trk-ex-front-tier:
