@@ -1,35 +1,96 @@
-# Trickster Demo (Docker Compose)
+# Trickster Demo
 
-This composition will spin up service containers for Prometheus, Grafana, Jaeger, Zipkin, Redis, Trickster and Mockster that together demonstrate several basic end-to-end configurations for running Trickster in your environment with different cache and tracing provider options. Note - if you have any of these services running locally already, you may run into port conflicts and need to temporarily spin down the conflicting processes.
+*Based on the original [Trickster Demo (Docker Compose)](https://github.com/tricksterproxy/trickster/tree/master/deploy/trickster-demo) example.*
+
+Trickster is a fully-featured HTTP Reverse Proxy Cache for HTTP applications like static file servers and web API's.
+
+Trickster dramatically improves dashboard chart rendering times for end users by eliminating redundant computations on the TSDBs it fronts. In short, Trickster makes read-heavy Dashboard/TSDB environments, as well as those with highly-cardinalized datasets, significantly more performant and scalable.
 
 ## Getting Starting
 
-First, make sure you have Docker and Docker Compose installed. This varies from system-to-system, and this document assumes you have this handled already. Then, clone the Trickster Github project and change your working directory to `./trickster/deploy/trickster-demo`.
+In order to start entire infrastructure using Docker, you have to build images by executing
 
-To run the demo, from the demo directory, run `docker-compose up -d`
+```
+ $ cd petclinic-services
+ $ ./mvnw clean install -PbuildDocker
+```
 
-You can then interact with each of the services on their exposed ports (as defined in [Compose file](./docker-compose.yml)), or by running `docker logs $container_name`, `docker attach $container_name`, etc.
+from a project root.
 
-Once the composition is running, a great place to start exploring is Grafana, which will be running at <http://127.0.0.1:3000/> if the composition came up without issue. Grafana is pre-configured with datasources and sample dashboard that are ready-to-use for the demo.
+After starting services it takes a while for `API Gateway` to be in sync with service registry, so don't be scared of initial Zuul timeouts.
 
-Also, take a look at Jaeger UI, available at <http://127.0.0.1:16686>, which provides visualization of traces shipped by Trickster and Grafana. The more you use trickster-based data sources in Grafana, the more traces you will see in Jaeger. This composition runs the Jaeger All-in-One container, and Trickster ships some traces to the Agent, and others directly to the Collector, so as to demonstrate both capabilities. The Trickster config determines which upstream origin ships which traces to where.
+*NOTE: Under MacOSX or Windows, make sure that the Docker VM has enough memory to run the microservices. The default settings
+are usually not enough and make the `docker-compose up` painfully slow.*
 
-Speaking of, definitely review the various files in the `docker-compose-data` folder, which is full of configurations and other bootstrap data. This might be useful for configuring and using Trickster (or any of these other fantastic projects) in your own deployments. It might be fun to add, remove or change some of the trickster configurations in [./docker-compose-data/trikcster-config/trickster.conf](./docker-compose-data/trikcster-config/trickster.conf) and then `docker exec trickster-demo_trickster_1 kill -1 1` into the Trickster container to apply the changes, or restart the environment altogether with `docker-compose restart`. Just be sure to make a backup of the original config first, so you don't have to download it again later.
+In its default configuration, Petclinic uses an in-memory database (HSQLDB) which gets populated at startup with data.
 
-## Example Datasources
+Once the services are ready, you can execute it using the Docker Compose file. From the root of thr epository, execute:
 
-The `sim-*` datasources generate on-the-fly simulation data for any possible timerange, so you can immediately use them after starting up the environment. Note, however, that the simulated data is not representative of reality in any way.
+```
+ $ docker-compose -f compose-services.yml up
+```
 
-The non-sim Prometheus container that backs the `prom-*` datasources polls the newly-running environment to generate metrics that will then populate the dashboard. Since the Prometheus container only collects and stores metrics while the environment is running, you'll need to wait a minute or two for those datasources to show any data on the dashoard in real-time.
+Now, it's time to up the observability infrastructure:
 
-## Getting Real Dashboad Data
+```
+ $ docker-compose -f compose-metrics.yml up
+```
 
-Using datasources backed by the real Prometheus and Trickster (the `prom-trickster-*` datasources), rather than the simulator, to explore the dashboard is more desirable for the demo. It better conveys the shape and nature of the Trickster-specific metrics that might be unfamiliar. However, since there is no historical data in the demo composition, that creates an upfront barrier.
+At this point, you can select the Grafana that you want to test:
 
-Keeping the dashboard open and auto-refreshing against any `trickster`-labeled datasource will help to generate real metrics in Trickster, such as request rates, cache hit rates, etc. Prometheus will collect and store those metrics, and the Grafana dashboard will query and render those metrics. So by keeping the demo dashboard open and refreshing, you are helping to generate the very metrics that the dashboard presents, making the demo much more visually useful while being very meta.
+```
+ $ docker-compose -f compose-grafana-direct.yml up
+ $ docker-compose -f compose-grafana-fs.yml up
+ $ docker-compose -f compose-grafana-mem.yml up
+ $ docker-compose -f compose-grafana-redis.yml up
+```
 
-In addition to generating metrics, using the `trickster`-labeled datasources generates traces that are viewable in Jaeger UI, as described above.
+Time to play!
 
-## Stopping the Demo and Cleaning Up
+## Services
 
-To stop and remove the demo, run `docker-compose down` from this directory.
+If everything goes well, you can access the following services at given location:
+
+__Business services__
+
+  * AngularJS frontend (API Gateway) - http://localhost:8080
+  * Customers, Vets and Visits Services - random port, check Eureka Dashboard
+
+__Infrastructure__
+
+ * Discovery Server - http://localhost:8761
+ * Config Server - http://localhost:8888
+ * Admin Server (Spring Boot Admin) - http://localhost:9090
+
+__Microservices management__
+
+  * Hystrix Dashboard for Circuit Breaker pattern - http://localhost:7979 - On the home page is a form where you can enter the URL for an event stream to monitor, for example the `api-gateway` service running locally: `http://localhost:8080/actuator/hystrix.stream` or running into docker: `http://api-gateway:8080/actuator/hystrix.stream`
+
+__Observability__
+
+  * Zipkin - http://localhost:9411
+
+__Grafana__
+
+  * Grafana with direct connection - http://localhost:3001
+  * Grafana through Trickster with memmory cache - http://localhost:3002
+  * Grafana through Trickster with file system cache - http://localhost:3003
+  * Grafana through Trickster with Redis cache - http://localhost:3004
+
+### Load
+
+ * [Artillery](https://artillery.io/) load generator for the Pet-Clinic. (To ensure that all services are up and running properly.)
+
+## Interact with the Containers
+
+You can then interact with each of the services on their exposed ports (as defined in Compose file), or by running
+
+```
+$ docker logs $container_name
+```
+
+or
+
+```
+$ docker attach $container_name
+```

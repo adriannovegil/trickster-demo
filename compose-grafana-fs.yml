@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+
+  # Metrics
+  # ============================================================================
+  # Grafana
+  grafana-fs:
+    image: grafana/grafana:6.7.3
+    container_name: trickster-grafana-fs
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./docker/grafana/fs/grafana-config:/etc/grafana
+      - ./docker/grafana/fs/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - trickster-demo_trk-ex-back-tier
+      - trickster-demo_trk-ex-front-tier
+    restart: always
+    ports:
+      - 3003:3000
+
+networks:
+  trickster-demo_trk-ex-front-tier:
+    external: true
+  trickster-demo_trk-ex-back-tier:
+    external: true

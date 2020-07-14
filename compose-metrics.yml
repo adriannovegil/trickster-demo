@@ -1,0 +1,72 @@
+version: '3.8'
+services:
+
+  # Metrics
+  # ============================================================================
+  # InfluxDB
+  influxdb-server:
+    image: influxdb:1.7.1
+    container_name: trickster-influxdb-server
+    environment:
+      - INFLUXDB_HTTP_FLUX_ENABLED=true
+      - INFLUXDB_HTTP_LOG_ENABLED=false
+      - INFLUXDB_DATA_QUERY_LOG_ENABLED=false
+    volumes:
+      - ./docker/influxdb-server:/docker-entrypoint-initdb.d
+    networks:
+      - trickster-demo_trk-ex-back-tier
+    ports:
+      - 8086:8086
+
+  # Trazing
+  # ============================================================================
+  # Zipkin server
+  zipkin-server:
+   image: openzipkin/zipkin:latest
+   container_name: trickster-zipkin-server
+   ports:
+    - 9411:9411
+   networks:
+     - trickster-demo_trk-ex-back-tier
+   restart: always
+
+  # Proxy
+  # ============================================================================
+  # Trickster
+  trickster:
+    image: tricksterproxy/trickster:1.1.0-beta
+    depends_on:
+      - influxdb-server
+      - grafana-direct
+      - grafana-mem
+      - grafana-fs
+      - grafana-redis
+      - redis
+    ports:
+      - 8480:8480   # primary frontend proxy port (insecure)
+      - 8481:8481   # metrics port (insecure)
+      # - 8483:8483 # tls frontend proxy port, unused in this demo
+      - 8484:8484   # config reload port (insecure), exposed publicly for demonstration purposes only
+    volumes:
+      - ./docker/trickster-config:/etc/trickster
+      - ./docker/trickster-data:/data/trickster
+    networks:
+      - trickster-demo_trk-ex-back-tier
+    restart: always
+
+  # Redis
+  redis:
+    image: redis:latest
+    container_name: trickster-redis
+    user: nobody
+    ports:
+      - 6379:6379
+    networks:
+      - trickster-demo_trk-ex-back-tier
+    restart: always
+
+networks:
+  trickster-demo_trk-ex-front-tier:
+    external: true
+  trickster-demo_trk-ex-back-tier:
+    external: true
