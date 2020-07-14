@@ -14,19 +14,20 @@ services:
     volumes:
       - ./docker/influxdb-server:/docker-entrypoint-initdb.d
     networks:
-      - trickster-demo_trk-ex-back-tier
+      - trk-ex-back-tier
     ports:
       - 8086:8086
-      
+
   # Chronograf
   chronograf:
     image: chronograf:1.6.2
+    container_name: trickster-chronograf
     environment:
       INFLUXDB_URL: http://influxdb-server:8086
     networks:
-      - trickster-demo_trk-ex-back-tier
+      - trk-ex-back-tier
     ports:
-      - "8889:8888"
+      - 8889:8888
 
   # Trazing
   # ============================================================================
@@ -34,14 +35,14 @@ services:
   zipkin-server:
    image: openzipkin/zipkin:latest
    container_name: trickster-zipkin-server
+   restart: always
+   networks:
+     - trk-ex-back-tier
    ports:
     - 9411:9411
-   networks:
-     - trickster-demo_trk-ex-back-tier
-   restart: always
 
 networks:
-  trickster-demo_trk-ex-front-tier:
+  trk-ex-front-tier:
     external: true
-  trickster-demo_trk-ex-back-tier:
+  trk-ex-back-tier:
     external: true

@@ -7,15 +7,15 @@ services:
   grafana-fs:
     image: grafana/grafana:6.7.3
     container_name: trickster-grafana-fs
+    restart: always
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - ./docker/grafana/fs/grafana-config:/etc/grafana
       - ./docker/grafana/fs/dashboards:/var/lib/grafana/dashboards
     networks:
-      - trickster-demo_trk-ex-back-tier
-      - trickster-demo_trk-ex-front-tier
-    restart: always
+      - trk-ex-front-tier
+      - trk-ex-back-tier
     ports:
       - 3000:3000
 
@@ -25,27 +25,22 @@ services:
   trickster:
     image: tricksterproxy/trickster:1.1.0-beta
     container_name: trickster-server-fs
+    restart: always
     depends_on:
-      - influxdb-server
-      - grafana-direct
-      - grafana-mem
       - grafana-fs
-      - grafana-redis
-      - redis
+    volumes:
+      - ./docker/trickster-config/fs:/etc/trickster
+      - ./docker/trickster-data/fs:/data/trickster
+    networks:
+      - trk-ex-back-tier
     ports:
       - 8480:8480   # primary frontend proxy port (insecure)
       - 8481:8481   # metrics port (insecure)
       # - 8483:8483 # tls frontend proxy port, unused in this demo
       - 8484:8484   # config reload port (insecure), exposed publicly for demonstration purposes only
-    volumes:
-      - ./docker/trickster-config/fs:/etc/trickster
-      - ./docker/trickster-data/fs:/data/trickster
-    networks:
-      - trickster-demo_trk-ex-back-tier
-    restart: always
 
 networks:
-  trickster-demo_trk-ex-front-tier:
+  trk-ex-front-tier:
     external: true
-  trickster-demo_trk-ex-back-tier:
+  trk-ex-back-tier:
     external: true

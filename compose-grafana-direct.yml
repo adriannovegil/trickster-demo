@@ -7,20 +7,20 @@ services:
   grafana-direct:
     image: grafana/grafana:6.7.3
     container_name: trickster-grafana-direct
+    restart: always
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - ./docker/grafana/direct/grafana-config:/etc/grafana
       - ./docker/grafana/direct/dashboards:/var/lib/grafana/dashboards
     networks:
-      - trickster-demo_trk-ex-back-tier
-      - trickster-demo_trk-ex-front-tier
-    restart: always
+      - trk-ex-front-tier
+      - trk-ex-back-tier
     ports:
       - 3000:3000
 
 networks:
-  trickster-demo_trk-ex-front-tier:
+  trk-ex-front-tier:
     external: true
-  trickster-demo_trk-ex-back-tier:
+  trk-ex-back-tier:
     external: true
