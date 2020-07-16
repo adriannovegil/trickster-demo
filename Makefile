@@ -84,7 +84,7 @@ up-services: create-networks
 ## down-services: Down the Java service containers
 .PHONY: down-services
 down-services: confirm
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_SERVICES) down $(c)
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_SERVICES) down -d $(c)
 
 ## up-metrics: Up the metric containers
 .PHONY: up-metrics
@@ -94,7 +94,7 @@ up-metrics: create-networks
 ## down-metrics: Down the Java service containers
 .PHONY: down-metrics
 down-metrics: confirm
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_METRICS) down $(c)
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_METRICS) down -d $(c)
 
 ## up-grafana-direct: Up the Grafana container with direct connection
 .PHONY: up-grafana-direct
@@ -104,7 +104,7 @@ up-grafana-direct: create-networks up-metrics
 ## down-grafana-direct: Down the Java service containers
 .PHONY: down-grafana-direct
 down-grafana-direct: confirm
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_DIRECT) down $(c)
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_DIRECT) down -d $(c)
 
 ## up-grafana-fs: Up the Grafana container with file system cache
 .PHONY: up-grafana-fs
@@ -114,7 +114,7 @@ up-grafana-fs: create-networks up-metrics
 ## down-grafana-fs: Down the Java service containers
 .PHONY: down-grafana-fs
 down-grafana-fs: confirm
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_FS) down $(c)
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_FS) down -d $(c)
 
 ## up-grafana-mem: Up the Grafana container with memory cache
 .PHONY: up-grafana-mem
@@ -124,7 +124,7 @@ up-grafana-mem: create-networks up-metrics
 ## down-grafana-mem: Down the Java service containers
 .PHONY: down-grafana-mem
 down-grafana-mem: confirm
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_MEM) down $(c)
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_MEM) down -d $(c)
 
 ## up-grafana-redis: Up the Grafana container with Redis cache
 .PHONY: up-grafana-redis
@@ -134,7 +134,7 @@ up-grafana-redis: create-networks up-metrics
 ## down-grafana-redis: Down the Java service containers
 .PHONY: down-grafana-redis
 down-grafana-redis: confirm
-	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_REDIS) down $(c)
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_REDIS) down -d $(c)
 
 ## up-all: Up all the containers
 .PHONY: up-all

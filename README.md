@@ -11,8 +11,7 @@ Trickster dramatically improves dashboard chart rendering times for end users by
 In order to start entire infrastructure using Docker, you have to build images by executing
 
 ```
- $ cd petclinic-services
- $ ./mvnw clean install -PbuildDocker
+ $ make build-services
 ```
 
 from a project root.
@@ -27,22 +26,22 @@ In its default configuration, Petclinic uses an in-memory database (HSQLDB) whic
 Once the services are ready, you can execute it using the Docker Compose file. From the root of thr epository, execute:
 
 ```
- $ docker-compose -f compose-services.yml up
+ $ make up-services
 ```
 
 Now, it's time to up the observability infrastructure:
 
 ```
- $ docker-compose -f compose-metrics.yml up
+ $ make up-metrics
 ```
 
 At this point, you can select the Grafana that you want to test:
 
 ```
- $ docker-compose -f compose-grafana-direct.yml up
- $ docker-compose -f compose-grafana-fs.yml up
- $ docker-compose -f compose-grafana-mem.yml up
- $ docker-compose -f compose-grafana-redis.yml up
+ $ make up-grafana-direct
+ $ make up-grafana-fs
+ $ make up-grafana-mem
+ $ make up-grafana-redis
 ```
 
 Time to play!
@@ -86,11 +85,13 @@ __Grafana__
 You can then interact with each of the services on their exposed ports (as defined in Compose file), or by running
 
 ```
+$ make status
 $ docker logs $container_name
 ```
 
 or
 
 ```
+$ make status
 $ docker attach $container_name
 ```
