@@ -154,9 +154,9 @@ stop-all:
 .PHONY: restart-all
 restart-all: stop-all up-all
 
-## clear-all: Clear all the containers
+## down-all: Down all the containers
 .PHONY: clear-all
-clear-all: confirm clear-networks
+down-all: confirm
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_SERVICES) down
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_METRICS) down
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_DIRECT) down
@@ -232,7 +232,7 @@ help: Makefile
 	@echo "   up-all                    Up all the containers"
 	@echo "   stop-all                  Stop all the containers"
 	@echo "   restart-all               Restart all the containers"
-	@echo "   clear-all                 Clear all the containers"
+	@echo "   down-all                  Down all the containers"
 	@echo ""
 	@echo " Docker commands:"
 	@echo "   delete-all-containers     Delete all containers"
