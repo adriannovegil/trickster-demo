@@ -69,10 +69,10 @@ create-networks:
 ## clear-networks: Delete the networks
 .PHONY: clear-networks
 clear-networks:
-	@if [ -z `docker network ls --filter name=${FRONT_TIER_NETWORK} --quiet` ]; then \
+	@if [ ! -z `docker network ls --filter name=${FRONT_TIER_NETWORK} --quiet` ]; then \
 		docker network rm ${FRONT_TIER_NETWORK}; \
 	fi; \
-	if [ -z `docker network ls --filter name=${BACK_TIER_NETWORK} --quiet` ]; then \
+	if [ ! -z `docker network ls --filter name=${BACK_TIER_NETWORK} --quiet` ]; then \
 		docker network rm ${BACK_TIER_NETWORK}; \
 	fi;
 
@@ -81,30 +81,60 @@ clear-networks:
 up-services: create-networks
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_SERVICES) up -d $(c)
 
+## down-services: Down the Java service containers
+.PHONY: down-services
+down-services: confirm
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_SERVICES) down -d $(c)
+
 ## up-metrics: Up the metric containers
 .PHONY: up-metrics
 up-metrics: create-networks
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_METRICS) up -d $(c)
+
+## down-metrics: Down the Java service containers
+.PHONY: down-metrics
+down-metrics: confirm
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_METRICS) down -d $(c)
 
 ## up-grafana-direct: Up the Grafana container with direct connection
 .PHONY: up-grafana-direct
 up-grafana-direct: create-networks up-metrics
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_DIRECT) up -d $(c)
 
+## down-grafana-direct: Down the Java service containers
+.PHONY: down-grafana-direct
+down-grafana-direct: confirm
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_DIRECT) down -d $(c)
+
 ## up-grafana-fs: Up the Grafana container with file system cache
 .PHONY: up-grafana-fs
 up-grafana-fs: create-networks up-metrics
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_FS) up -d $(c)
+
+## down-grafana-fs: Down the Java service containers
+.PHONY: down-grafana-fs
+down-grafana-fs: confirm
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_FS) down -d $(c)
 
 ## up-grafana-mem: Up the Grafana container with memory cache
 .PHONY: up-grafana-mem
 up-grafana-mem: create-networks up-metrics
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_MEM) up -d $(c)
 
+## down-grafana-mem: Down the Java service containers
+.PHONY: down-grafana-mem
+down-grafana-mem: confirm
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_MEM) down -d $(c)
+
 ## up-grafana-redis: Up the Grafana container with Redis cache
 .PHONY: up-grafana-redis
 up-grafana-redis: create-networks up-metrics
 	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_REDIS) up -d $(c)
+
+## down-grafana-redis: Down the Java service containers
+.PHONY: down-grafana-redis
+down-grafana-redis: confirm
+	@$(DOCKER_COMPOSE) -f $(DOCKER_COMPOSE_FILE_GRAFANA_REDIS) down -d $(c)
 
 ## up-all: Up all the containers
 .PHONY: up-all
@@ -181,8 +211,8 @@ help: Makefile
 	@echo " Choose a command to run in "$(PROJECTNAME)":"
 	@echo ""
 	@echo " Network commands:"
-	@echo "   create-networks          Create the networks"
-	@echo "   clear-networks           Delete the networks"
+	@echo "   create-networks           Create the networks"
+	@echo "   clear-networks            Delete the networks"
 	@echo ""
 	@echo " Application commands:"
 	@echo "   build-services            Build the Java Services and the Docker images"
@@ -193,6 +223,12 @@ help: Makefile
 	@echo "   up-grafana-fs             Up the Grafana container with file system cache"
 	@echo "   up-grafana-mem            Up the Grafana container with memory cache"
 	@echo "   up-grafana-redis          Up the Grafana container with Redis cache"
+	@echo "   down-services             Down the Java service containers"
+	@echo "   down-metrics              Down the metric containers"
+	@echo "   down-grafana-direct       Down the Grafana container with direct connection"
+	@echo "   down-grafana-fs           Down the Grafana container with file system cache"
+	@echo "   down-grafana-mem          Down the Grafana container with memory cache"
+	@echo "   down-grafana-redis        Down the Grafana container with Redis cache"
 	@echo "   up-all                    Up all the containers"
 	@echo "   stop-all                  Stop all the containers"
 	@echo "   restart-all               Restart all the containers"
